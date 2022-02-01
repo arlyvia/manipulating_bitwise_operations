@@ -14,7 +14,8 @@
  *   Rating: 1
  */
 int tmin(void) {
-  return 2;
+  return 1 << 31;
+  //return 2;
 }
 
 /*
@@ -26,7 +27,8 @@ int tmin(void) {
  *   Rating: 1
  */
 int bitAnd(int x, int y) {
-  return 2;
+  return ~(~x | ~y);
+  //return 2;
 }
 
 /*
@@ -38,7 +40,8 @@ int bitAnd(int x, int y) {
  *   Rating: 1
  */
 int negate(int x) {
-  return 2;
+  return ~x + 1;
+  //return 2;
 }
 
 /*
@@ -50,7 +53,8 @@ int negate(int x) {
  *   Rating: 2
  */
 int isEqual(int x, int y) {
-  return 2;
+  return !(x^y);
+  //return 2;
 }
 
 /*
@@ -62,7 +66,12 @@ int isEqual(int x, int y) {
  *   Rating: 3
  */
 int addOK(int x, int y) {
-  return 2;
+  int x_sign = x >> 31 & 1;
+  int y_sign = y >> 31 & 1;
+  int result_sign = (x + y) >> 31 & 1;
+
+  return !(~(x_sign ^ y_sign) & (x_sign ^ result_sign));
+  //return 2;
 }
 
 /*
@@ -75,7 +84,8 @@ int addOK(int x, int y) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
+  return (0x1F << 24 >> (x >> 1)) & !(x >> 6);
+  //return 2;
 }
 
 /*
@@ -89,7 +99,29 @@ int isAsciiDigit(int x) {
  *   Rating: 4
  */
 int satAdd(int x, int y) {
-  return 2;
+  //return 2;
+  int add = x + y;
+
+  int x_sign = x >> 31;
+  int y_sign = y >> 31;
+  int xy_sign = add >> 31;
+
+  int overflow = (~(x_sign ^ y_sign)) & (x_sign ^ xy_sign);
+  
+  //pos overflow
+  //overflow & x < 0
+  int pos_over = overflow & (~(x_sign ^ 0));
+  
+  //neg overflow
+  //overflow & x > 0
+  int neg_over = ~(overflow & (~(x_sign ^ 0)));
+  
+  //min neg and max pos
+  int min = 1 << 31;
+  int max = ~min;
+  
+  int result = (~overflow & add) | (overflow & ((pos_over & max) | (neg_over & min)));
+  return result;
 }
 
 /*
@@ -101,7 +133,11 @@ int satAdd(int x, int y) {
  *   Rating: 3
  */
 int dividePower2(int x, int n) {
-    return 2;
+  int neg = x >> 31;
+  int tmp = ((neg & 1) << n) + neg;
+
+  return (x + tmp) >> n;
+  //return 2;
 }
 
 /* 
@@ -129,7 +165,11 @@ int replaceByte(int x, int n, int c) {
  *   Rating: 2
  */
 unsigned floatAbsVal(unsigned uf) {
-  return 2;
+  //return 2;
+  unsigned mask = uf & 0x007fffff;
+  unsigned exp = (uf & 0x7f800000);
+
+  return (exp == 0x7f800000 && mask) ? uf : (0x7fffffff & uf);
 }
 
 /*
@@ -144,7 +184,14 @@ unsigned floatAbsVal(unsigned uf) {
  *   Rating: 3
  */
 int floatIsEqual(unsigned uf, unsigned ug) {
-    return 2;
+  int mask = 0x7fffffff;
+  int exp_mask = 0x7f800000;
+
+  int is_NaN = ((uf & mask) > exp_mask || (ug & mask) > exp_mask);
+  int zeros = (!((uf & mask) || ((ug & mask))));
+
+  return (!is_NaN) && (zeros || (uf == ug));
+  //return 2;
 }
 
 /*
@@ -161,5 +208,19 @@ int floatIsEqual(unsigned uf, unsigned ug) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+  //return 2;
+  int power = x + 127;
+
+  //too small
+  if(power <= 0){
+    return 0;
+  } 
+
+  //too large
+  if(power >= 255){
+    return 0x7f800000;
+  } 
+
+  //2.0^x
+  return power << 23;
 }
