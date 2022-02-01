@@ -150,7 +150,11 @@ int dividePower2(int x, int n) {
  *   Rating: 3
  */
 int replaceByte(int x, int n, int c) {
-  return 2;
+  int a= n << 3;
+	int masker= 0xFF << a;
+	int shifter = c << a;
+	return (x & ~masker) | shifter;
+  //return 2;
 }
 
 /*
@@ -208,19 +212,15 @@ int floatIsEqual(unsigned uf, unsigned ug) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-  //return 2;
-  int power = x + 127;
-
-  //too small
-  if(power <= 0){
+  if (x < -149) {
     return 0;
-  } 
-
-  //too large
-  if(power >= 255){
-    return 0x7f800000;
-  } 
-
-  //2.0^x
-  return power << 23;
+  }
+  if (x < -126) {
+    return 0x800000 >> (-126 - x);
+  }
+  if (x <= 127) {
+    return (x + 127) << 23;
+  } else {
+    return 0xff << 23;
+  }
 }
